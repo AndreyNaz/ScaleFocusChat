@@ -14,6 +14,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScaleFocusChat.Data;
 using ScaleFocusChat.Hubs;
+using ScaleFocusChat.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 [assembly: ApiController]
 namespace ScaleFocusChat
@@ -34,14 +38,31 @@ namespace ScaleFocusChat
 
             services.AddDbContext<ScaleFocusChatDbContext>(options
                 => options.UseSqlServer(Configuration.GetConnectionString("ScaleFocusChatConnection")));
-
+            
             // In production, the React files will be served from this directory
-            services.AddSpaStaticFiles(configuration =>
-            {
-                configuration.RootPath = "ClientApp2/build";
-            });
+            //services.AddSpaStaticFiles(configuration =>
+            //{
+            //    configuration.RootPath = "ClientApp/frontend/build";
+            //});
 
             services.AddSignalR();
+
+            services.AddAuthentication(options => {
+                options.DefaultScheme = "Cookies";
+            }).AddCookie("Cookies", options => {
+                options.Cookie.Name = "auth_cookie";
+                options.Cookie.SameSite = SameSiteMode.None;
+                options.Events = new CookieAuthenticationEvents
+                {
+                    OnRedirectToLogin = redirectContext =>
+                    {
+                        redirectContext.HttpContext.Response.StatusCode = 401;
+                        return Task.CompletedTask;
+                    }
+                };
+            });
+
+            services.AddCors();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -57,21 +78,31 @@ namespace ScaleFocusChat
                 app.UseHsts();
             }
 
+            app.UseAuthentication();
             app.UseHttpsRedirection();
+            app.UseCors(policy =>
+            {
+                policy.AllowAnyHeader();
+                policy.AllowAnyMethod();
+                policy.AllowAnyOrigin();
+                policy.AllowCredentials();
+            });
+
+            app.UseAuthentication();
             app.UseMvc();
 
-            app.UseStaticFiles();
-            app.UseSpaStaticFiles();
-
-            app.UseSpa(spa =>
-            {
-                spa.Options.SourcePath = "ClientApp2";
-
-                if (env.IsDevelopment())
-                {
-                    spa.UseReactDevelopmentServer(npmScript: "start");
-                }
-            });
+            //app.UseStaticFiles();
+            //app.UseSpaStaticFiles();
+            //
+            //app.UseSpa(spa =>
+            //{
+            //    spa.Options.SourcePath = "ClientApp/frontend";
+            //
+            //    if (env.IsDevelopment())
+            //    {
+            //        spa.UseReactDevelopmentServer(npmScript: "start");
+            //    }
+            //});
 
             app.UseSignalR(routes =>
             {

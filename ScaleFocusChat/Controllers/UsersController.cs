@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +21,33 @@ namespace ScaleFocusChat.Controllers
         public UsersController(ScaleFocusChatDbContext context)
         {
             _context = context;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Login(string username, string password)
+        {
+            if (!UserExists(username))
+                return BadRequest();
+
+            var user = _context.Users.Find(username);
+
+            var claimsIdentity = new ClaimsIdentity(new[]
+            {
+                new Claim(ClaimTypes.Name, user.Username),
+                //...
+            }, "Cookies");
+
+            var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
+            await Request.HttpContext.SignInAsync("Cookies", claimsPrincipal);
+
+            return NoContent();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync();
+            return NoContent();
         }
 
         // GET: api/Users
@@ -98,9 +127,9 @@ namespace ScaleFocusChat.Controllers
             return user;
         }
 
-        private bool UserExists(int id)
+        private bool UserExists(string username)
         {
-            return _context.Users.Any(e => e.UserId == id);
+            return _context.Users.Any(e => e.Username == username);
         }
     }
 }
