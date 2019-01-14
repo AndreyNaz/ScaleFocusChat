@@ -73,9 +73,9 @@ namespace ScaleFocusChat.Controllers
 
         // PUT: api/Users/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(int id, User user)
+        public async Task<IActionResult> PutUser(string name, User user)
         {
-            if (id != user.UserId)
+            if (name != user.Username)
             {
                 return BadRequest();
             }
@@ -88,7 +88,7 @@ namespace ScaleFocusChat.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!UserExists(id))
+                if (!UserExists(name))
                 {
                     return NotFound();
                 }

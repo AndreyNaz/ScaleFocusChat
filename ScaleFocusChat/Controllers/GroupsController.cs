@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScaleFocusChat.Data;
 using ScaleFocusChat.Models;
+using ScaleFocusChat.Services;
 
 namespace ScaleFocusChat.Controllers
 {
@@ -14,93 +15,26 @@ namespace ScaleFocusChat.Controllers
     [ApiController]
     public class GroupsController : ControllerBase
     {
-        private readonly ScaleFocusChatDbContext _context;
+        private readonly IGroupService _groupService;
 
-        public GroupsController(ScaleFocusChatDbContext context)
+        public GroupsController(IGroupService groupService)
         {
-            _context = context;
+            _groupService = groupService;
         }
 
-        // GET: api/Groups
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Group>>> GetGroups()
+        public async Task<IActionResult> Get()
         {
-            return await _context.Groups.ToListAsync();
+            var groups = await _groupService.GetGroupsAsync();
+
+            return Ok(groups);
         }
 
-        // GET: api/Groups/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Group>> GetGroup(int id)
-        {
-            var @group = await _context.Groups.FindAsync(id);
-
-            if (@group == null)
-            {
-                return NotFound();
-            }
-
-            return @group;
-        }
-
-        // PUT: api/Groups/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutGroup(int id, Group @group)
-        {
-            if (id != @group.GroupId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(@group).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!GroupExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/Groups
+        // POST api/values
         [HttpPost]
-        public async Task<ActionResult<Group>> PostGroup(Group @group)
+        public async void Post([FromBody]Group group)
         {
-            _context.Groups.Add(@group);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetGroup", new { id = @group.GroupId }, @group);
-        }
-
-        // DELETE: api/Groups/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<Group>> DeleteGroup(int id)
-        {
-            var @group = await _context.Groups.FindAsync(id);
-            if (@group == null)
-            {
-                return NotFound();
-            }
-
-            _context.Groups.Remove(@group);
-            await _context.SaveChangesAsync();
-
-            return @group;
-        }
-
-        private bool GroupExists(int id)
-        {
-            return _context.Groups.Any(e => e.GroupId == id);
+            await _groupService.AddGroupAsync(group);
         }
     }
 }

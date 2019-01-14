@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ScaleFocusChat.Data;
 using ScaleFocusChat.Models;
+using ScaleFocusChat.Services;
 
 namespace ScaleFocusChat.Controllers
 {
@@ -14,93 +15,36 @@ namespace ScaleFocusChat.Controllers
     [ApiController]
     public class MessagesController : ControllerBase
     {
-        private readonly ScaleFocusChatDbContext _context;
+        private readonly IMessageService _messageService;
 
-        public MessagesController(ScaleFocusChatDbContext context)
+        public MessagesController(IMessageService messageService)
         {
-            _context = context;
+            _messageService = messageService;
         }
 
         // GET: api/Messages
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Message>>> GetMessages()
+        public async Task<IActionResult> Get()
         {
-            return await _context.Messages.ToListAsync();
+            var GroupMessages = await _messageService.GetMessagesAsync();
+
+            return Ok(GroupMessages);
         }
 
         // GET: api/Messages/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Message>> GetMessage(int id)
+        [HttpGet("{groupId}")]
+        public async Task<IActionResult> Get(int groupId)
         {
-            var message = await _context.Messages.FindAsync(id);
+            var groupMessages = await _messageService.GetMessagesForChatGroupAsync(groupId);
 
-            if (message == null)
-            {
-                return NotFound();
-            }
-
-            return message;
-        }
-
-        // PUT: api/Messages/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutMessage(int id, Message message)
-        {
-            if (id != message.MessageId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(message).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!MessageExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+            return Ok(groupMessages);
         }
 
         // POST: api/Messages
         [HttpPost]
-        public async Task<ActionResult<Message>> PostMessage(Message message)
+        public async void Post([FromBody] Message message)
         {
-            _context.Messages.Add(message);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetMessage", new { id = message.MessageId }, message);
+            await _messageService.AddMessageToGroupAsync(message.TargetGroupId, message);
         }
-
-        // DELETE: api/Messages/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<Message>> DeleteMessage(int id)
-        {
-            var message = await _context.Messages.FindAsync(id);
-            if (message == null)
-            {
-                return NotFound();
-            }
-
-            _context.Messages.Remove(message);
-            await _context.SaveChangesAsync();
-
-            return message;
-        }
-
-        private bool MessageExists(int id)
-        {
-            return _context.Messages.Any(e => e.MessageId == id);
-        }
+    }
     }
 }
